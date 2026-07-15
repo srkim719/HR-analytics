@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>이직 비용 분석기 — People Intelligence by Sung Rok Kim</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  :root {
+    --ink: #0f1923;
+    --ink-2: #374151;
+    --ink-3: #6b7280;
+    --line: #e5e7eb;
+    --page: #f9fafb;
+    --white: #ffffff;
+    --accent: #1d4ed8;
+    --accent-light: #eff6ff;
+    --accent-border: #bfdbfe;
+    --danger: #dc2626;
+    --danger-light: #fef2f2;
+    --warning: #d97706;
+    --warning-light: #fffbeb;
+    --success: #16a34a;
+    --success-light: #f0fdf4;
+    --radius: 10px;
+    --radius-sm: 6px;
+    --sans: 'Inter', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+    --mono: 'JetBrains Mono', 'Fira Code', monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: var(--sans);
+    background: var(--page);
+    color: var(--ink);
+    min-height: 100vh;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── TOP NAV ── */
+  nav {
+    background: var(--white);
+    border-bottom: 1px solid var(--line);
+    padding: 0 24px;
+    height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .nav-brand {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink);
+    letter-spacing: -.01em;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+  }
+  .nav-brand span {
+    font-weight: 400;
+    color: var(--ink-3);
+    font-size: 12px;
+  }
+  .nav-pill {
+    font-size: 11px;
+    font-weight: 500;
+    padding: 5px 14px;
+    border-radius: 20px;
+    background: var(--accent);
+    color: white;
+    text-decoration: none;
+    letter-spacing: .01em;
+  }
+
+  /* ── LAYOUT ── */
+  .page-wrap {
+    max-width: 820px;
+    margin: 0 auto;
+    padding: 40px 24px 80px;
+  }
+
+  /* ── HERO ── */
+  .hero {
+    margin-bottom: 36px;
+  }
+  .hero-eyebrow {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 10px;
+  }
+  .hero-title {
+    font-size: 28px;
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: -.02em;
+    color: var(--ink);
+    margin-bottom: 12px;
+  }
+  .hero-title em {
+    font-style: normal;
+    color: var(--accent);
+  }
+  .hero-desc {
+    font-size: 14px;
+    color: var(--ink-2);
+    max-width: 560px;
+    line-height: 1.7;
+  }
+
+  /* ── CARDS ── */
+  .card {
+    background: var(--white);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 22px 24px;
+    margin-bottom: 16px;
+  }
+  .card-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    letter-spacing: -.01em;
+  }
+  .card-title-num {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: white;
+    font-size: 11px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  /* ── FORM ── */
+  .field-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .field-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 600px) {
+    .field-grid-3, .field-grid-2 { grid-template-columns: 1fr; }
+  }
+  .field { display: flex; flex-direction: column; gap: 5px; }
+  .field label {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--ink-2);
+    letter-spacing: .02em;
+    text-transform: uppercase;
+  }
+  .field input, .field select {
+    font-size: 13px;
+    padding: 8px 12px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    background: var(--page);
+    color: var(--ink);
+    font-family: var(--sans);
+    transition: border-color .15s;
+    width: 100%;
+  }
+  .field input:focus, .field select:focus {
+    outline: none;
+    border-color: var(--accent);
+    background: var(--white);
+  }
+
+  /* ── EMP TABLE ── */
+  .emp-table-wrap { overflow-x: auto; margin-bottom: 8px; }
+  .emp-table { width: 100%; border-collapse: collapse; min-width: 580px; }
+  .emp-table th {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--ink-3);
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    padding: 6px 8px;
+    text-align: left;
+    border-bottom: 1px solid var(--line);
+    white-space: nowrap;
+  }
+  .emp-table td { padding: 6px 8px; vertical-align: middle; }
+  .emp-table tr:not(:last-child) td { border-bottom: 1px solid #f3f4f6; }
+  .emp-table input, .emp-table select {
+    font-size: 12px;
+    padding: 5px 8px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    background: var(--page);
+    color: var(--ink);
+    font-family: var(--sans);
+    width: 100%;
+  }
+  .emp-table input:focus, .emp-table select:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+  .del-btn {
+    background: none;
+    border: none;
+    color: var(--ink-3);
+    cursor: pointer;
+    font-size: 16px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    line-height: 1;
+    transition: color .1s, background .1s;
+  }
+  .del-btn:hover { color: var(--danger); background: var(--danger-light); }
+  .add-row-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--accent);
+    background: none;
+    border: 1px dashed var(--accent-border);
+    border-radius: var(--radius-sm);
+    padding: 7px 14px;
+    cursor: pointer;
+    font-family: var(--sans);
+    transition: background .15s;
+    margin-top: 8px;
+  }
+  .add-row-btn:hover { background: var(--accent-light); }
+
+  /* ── RUN BTN ── */
+  .run-btn {
+    width: 100%;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: var(--radius);
+    padding: 13px;
+    font-size: 14px;
+    font-weight: 600;
+    font-family: var(--sans);
+    cursor: pointer;
+    letter-spacing: -.01em;
+    transition: opacity .15s;
+    margin-top: 8px;
+  }
+  .run-btn:hover { opacity: .9; }
+
+  /* ── KPI GRID ── */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  @media (max-width: 600px) { .kpi-grid { grid-template-columns: repeat(2, 1fr); } }
+  .kpi {
+    background: var(--white);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+  }
+  .kpi.danger { border-color: #fca5a5; background: var(--danger-light); }
+  .kpi-label { font-size: 10px; font-weight: 600; color: var(--ink-3); letter-spacing: .06em; text-transform: uppercase; margin-bottom: 6px; }
+  .kpi-value { font-size: 20px; font-weight: 700; color: var(--ink); line-height: 1; font-family: var(--mono); }
+  .kpi.danger .kpi-value { color: var(--danger); }
+  .kpi-sub { font-size: 11px; color: var(--ink-3); margin-top: 4px; }
+
+  /* ── RESULT TABLE ── */
+  .result-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .result-table th {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--ink-3);
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    padding: 7px 10px;
+    text-align: left;
+    border-bottom: 1px solid var(--line);
+    white-space: nowrap;
+  }
+  .result-table td {
+    padding: 9px 10px;
+    color: var(--ink-2);
+    border-bottom: 1px solid #f3f4f6;
+    vertical-align: middle;
+  }
+  .result-table td:first-child { color: var(--ink); font-weight: 500; }
+  .result-table tr:last-child td { border-bottom: none; }
+
+  /* ── BADGE ── */
+  .badge {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 20px;
+  }
+  .badge-danger { background: var(--danger-light); color: var(--danger); border: 1px solid #fca5a5; }
+  .badge-warning { background: var(--warning-light); color: var(--warning); border: 1px solid #fde68a; }
+  .badge-success { background: var(--success-light); color: var(--success); border: 1px solid #86efac; }
+  .badge-left { background: #f3f4f6; color: var(--ink-3); border: 1px solid var(--line); }
+
+  /* ── INSIGHT & WARN BOXES ── */
+  .insight-box {
+    background: var(--accent-light);
+    border-left: 3px solid var(--accent);
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    padding: 12px 16px;
+    font-size: 13px;
+    color: var(--ink-2);
+    line-height: 1.7;
+    margin-top: 14px;
+  }
+  .insight-box strong { color: var(--ink); }
+  .warn-box {
+    background: var(--warning-light);
+    border-left: 3px solid var(--warning);
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    padding: 12px 16px;
+    font-size: 13px;
+    color: var(--ink-2);
+    line-height: 1.7;
+    margin-top: 10px;
+  }
+  .warn-box strong { color: var(--ink); }
+
+  /* ── CHART ── */
+  .chart-wrap { position: relative; width: 100%; height: 200px; margin-top: 16px; }
+
+  /* ── COMPARE ── */
+  .compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px; }
+  @media (max-width: 500px) { .compare-grid { grid-template-columns: 1fr; } }
+  .compare-box {
+    background: var(--page);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+  }
+  .compare-box-label { font-size: 11px; font-weight: 500; color: var(--ink-3); margin-bottom: 6px; text-transform: uppercase; letter-spacing: .04em; }
+  .compare-box-val { font-size: 22px; font-weight: 700; font-family: var(--mono); }
+  .compare-box-val.red { color: var(--danger); }
+  .compare-box-val.blue { color: var(--accent); }
+  .compare-box-sub { font-size: 11px; color: var(--ink-3); margin-top: 4px; line-height: 1.5; }
+
+  /* ── REC BOXES ── */
+  .rec-box { border-radius: var(--radius); padding: 14px 16px; margin-bottom: 10px; }
+  .rec-box-label { font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 5px; }
+  .rec-box-body { font-size: 12px; line-height: 1.65; }
+  .rec-urgent { background: var(--danger-light); border: 1px solid #fca5a5; }
+  .rec-urgent .rec-box-label { color: var(--danger); }
+  .rec-mid { background: var(--warning-light); border: 1px solid #fde68a; }
+  .rec-mid .rec-box-label { color: var(--warning); }
+  .rec-plan { background: var(--accent-light); border: 1px solid var(--accent-border); }
+  .rec-plan .rec-box-label { color: var(--accent); }
+
+  /* ── FOOTER ── */
+  .tool-footer {
+    margin-top: 40px;
+    padding-top: 24px;
+    border-top: 1px solid var(--line);
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .tool-footer-note { font-size: 11px; color: var(--ink-3); line-height: 1.6; max-width: 420px; }
+  .nl-cta {
+    background: var(--ink);
+    color: white;
+    border: none;
+    border-radius: var(--radius);
+    padding: 10px 20px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: var(--sans);
+    text-decoration: none;
+    display: inline-block;
+    white-space: nowrap;
+    letter-spacing: .01em;
+  }
+  .nl-cta:hover { opacity: .85; }
+
+  .hidden { display: none !important; }
+  .section-divider { height: 1px; background: var(--line); margin: 8px 0 20px; }
+</style>
+</head>
+<body>
+
+<nav>
+  <a class="nav-brand" href="https://notion.so" target="_blank">
+    People Intelligence
+    <span>by Sung Rok Kim</span>
+  </a>
+  <a class="nav-pill" href="https://linkedin.com/in/sung-rok-kim" target="_blank">LinkedIn →</a>
+</nav>
+
+<div class="page-wrap">
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="hero-eyebrow">HR Analytics Lab — Tool 01</div>
+    <h1 class="hero-title">직원 한 명이 떠나면<br><em>실제로 얼마가 드는가</em></h1>
+    <p class="hero-desc">이직을 HR 지표가 아닌 비용의 언어로 바라봅니다. 직원 데이터를 입력하면 이직 비용을 산출하고, Retention 투자 대비 신규 채용의 경제적 효과를 비교합니다.</p>
+  </div>
+
+  <!-- CARD 1: SETTINGS -->
+  <div class="card">
+    <div class="card-title">
+      <div class="card-title-num">1</div>
+      기본 설정
+    </div>
+    <div class="field-grid-3">
+      <div class="field">
+        <label>시장 포지셔닝 (P50 대비)</label>
+        <select id="mktPos">
+          <option value="0.85">P35 이하 (85% 미만)</option>
+          <option value="0.90">P40 (90%)</option>
+          <option value="0.95">P45 (95%)</option>
+          <option value="1.00" selected>P50 (시장 중위값)</option>
+          <option value="1.05">P55 (105%)</option>
+          <option value="1.10">P65 (110%)</option>
+          <option value="1.15">P75 이상 (115%+)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>이직 비용 산정 (연봉 배수)</label>
+        <select id="turnCostMult">
+          <option value="0.5">0.5× — 단순 대체 비용</option>
+          <option value="1.0" selected>1.0× — 업계 평균</option>
+          <option value="1.5">1.5× — 전문직 / 시니어</option>
+          <option value="2.0">2.0× — 임원급 / 핵심 인재</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>헤드헌터 수수료율 (%)</label>
+        <input type="number" id="hhFee" value="20" min="0" max="50" step="1">
+      </div>
+    </div>
+  </div>
+
+  <!-- CARD 2: EMPLOYEE DATA -->
+  <div class="card">
+    <div class="card-title">
+      <div class="card-title-num">2</div>
+      직원 데이터 입력
+    </div>
+    <div class="emp-table-wrap">
+      <table class="emp-table">
+        <thead>
+          <tr>
+            <th>이름 / 직군</th>
+            <th>연봉 (만원)</th>
+            <th>재직기간 (년)</th>
+            <th>성과등급</th>
+            <th>이직여부</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="empBody"></tbody>
+      </table>
+    </div>
+    <button class="add-row-btn" onclick="addRow()">+ 직원 추가</button>
+  </div>
+
+  <button class="run-btn" onclick="analyze()">분석 실행 →</button>
+
+  <!-- RESULTS -->
+  <div id="results" class="hidden" style="margin-top:24px">
+
+    <!-- KPI -->
+    <div class="kpi-grid">
+      <div class="kpi danger">
+        <div class="kpi-label">이직자 수</div>
+        <div class="kpi-value" id="rN">—</div>
+        <div class="kpi-sub" id="rNSub"></div>
+      </div>
+      <div class="kpi danger">
+        <div class="kpi-label">총 이직 비용</div>
+        <div class="kpi-value" id="rCost">—</div>
+        <div class="kpi-sub">헤드헌터 포함</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">이직자 평균 연봉</div>
+        <div class="kpi-value" id="rSal">—</div>
+        <div class="kpi-sub" id="rSalSub"></div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Retention 절감 효과</div>
+        <div class="kpi-value" id="rSave">—</div>
+        <div class="kpi-sub">채용 대비 예상 절감액</div>
+      </div>
+    </div>
+
+    <!-- DETAIL TABLE -->
+    <div class="card">
+      <div class="card-title">
+        <div class="card-title-num">→</div>
+        직원별 상세 분석
+      </div>
+      <div style="overflow-x:auto">
+        <table class="result-table">
+          <thead>
+            <tr>
+              <th>이름 / 직군</th>
+              <th>연봉</th>
+              <th>재직기간</th>
+              <th>성과</th>
+              <th>이직여부</th>
+              <th>이직 비용 추정</th>
+              <th>위험도</th>
+            </tr>
+          </thead>
+          <tbody id="detailBody"></tbody>
+        </table>
+      </div>
+      <div id="insightBox" class="insight-box" style="margin-top:14px"></div>
+      <div id="warnBox" class="warn-box hidden"></div>
+    </div>
+
+    <!-- CHARTS -->
+    <div class="card">
+      <div class="card-title">
+        <div class="card-title-num">→</div>
+        이직자 vs 잔류자 연봉 분포
+      </div>
+      <div class="chart-wrap">
+        <canvas id="chartSal"></canvas>
+      </div>
+    </div>
+
+    <!-- RETENTION VS HIRE -->
+    <div class="card">
+      <div class="card-title">
+        <div class="card-title-num">→</div>
+        Retention 투자 vs 신규 채용 비용
+      </div>
+      <div class="compare-grid">
+        <div class="compare-box">
+          <div class="compare-box-label">신규 채용 총 비용</div>
+          <div class="compare-box-val red" id="cHire">—</div>
+          <div class="compare-box-sub">이직 비용 + 헤드헌터 수수료<br>+ 온보딩 기간 생산성 손실</div>
+        </div>
+        <div class="compare-box">
+          <div class="compare-box-label">Retention 투자 예산</div>
+          <div class="compare-box-val blue" id="cRet">—</div>
+          <div class="compare-box-sub">보상 격차 해소 예상 비용<br>→ 신규 채용 대비 절감 효과</div>
+        </div>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="chartRet"></canvas>
+      </div>
+      <div id="retCalcText" style="font-size:12px;color:var(--ink-2);margin-top:12px;line-height:1.7"></div>
+    </div>
+
+    <!-- RECOMMENDATIONS -->
+    <div class="card">
+      <div class="card-title">
+        <div class="card-title-num">→</div>
+        경영진 권고 사항
+      </div>
+      <div class="rec-box rec-urgent">
+        <div class="rec-box-label">즉시 조치 (1개월 내)</div>
+        <div class="rec-box-body" id="rec1"></div>
+      </div>
+      <div class="rec-box rec-mid">
+        <div class="rec-box-label">단기 과제 (3개월 내)</div>
+        <div class="rec-box-body" id="rec2"></div>
+      </div>
+      <div class="rec-box rec-plan">
+        <div class="rec-box-label">중장기 과제 (6개월~)</div>
+        <div class="rec-box-body" id="rec3"></div>
+      </div>
+    </div>
+
+  </div><!-- /results -->
+
+  <!-- FOOTER -->
+  <div class="tool-footer">
+    <div class="tool-footer-note">
+      이 도구는 Sung Rok Kim이 HR 실무 경험을 바탕으로 직접 설계했습니다.<br>
+      입력된 데이터는 외부로 전송되지 않으며 브라우저 내에서만 처리됩니다.<br>
+      People Intelligence — HR Analytics를 비즈니스 언어로 번역합니다.
+    </div>
+    <a class="nl-cta" href="https://linkedin.com/in/sung-rok-kim" target="_blank">뉴스레터 구독하기 →</a>
+  </div>
+
+</div><!-- /page-wrap -->
+
+<script>
+var employees = [
+  {name:'마케팅 매니저 A', sal:7000, tenure:2, perf:'high', left:true},
+  {name:'HR 시니어 B', sal:6500, tenure:4, perf:'mid', left:false},
+  {name:'재무 분석가 C', sal:5500, tenure:1.5, perf:'high', left:true},
+  {name:'영업 팀장 D', sal:8000, tenure:6, perf:'mid', left:false},
+  {name:'IT 개발자 E', sal:7500, tenure:1, perf:'high', left:true},
+  {name:'운영 담당 F', sal:4500, tenure:8, perf:'low', left:false},
+];
+
+var charts = {};
+
+function renderRows() {
+  var html = '';
+  employees.forEach(function(e, i) {
+    html += '<tr>' +
+      '<td><input type="text" value="' + e.name + '" onchange="emp(' + i + ',\'name\',this.value)" placeholder="이름 또는 직군"></td>' +
+      '<td><input type="number" value="' + e.sal + '" onchange="emp(' + i + ',\'sal\',+this.value)" step="100" min="0" style="width:90px"></td>' +
+      '<td><input type="number" value="' + e.tenure + '" onchange="emp(' + i + ',\'tenure\',+this.value)" step="0.5" min="0" style="width:70px"></td>' +
+      '<td><select onchange="emp(' + i + ',\'perf\',this.value)">' +
+        '<option value="high"' + (e.perf==='high'?' selected':'') + '>우수</option>' +
+        '<option value="mid"' + (e.perf==='mid'?' selected':'') + '>보통</option>' +
+        '<option value="low"' + (e.perf==='low'?' selected':'') + '>미흡</option>' +
+      '</select></td>' +
+      '<td><select onchange="emp(' + i + ',\'left\',this.value===\'true\')">' +
+        '<option value="true"' + (e.left?' selected':'') + '>이직</option>' +
+        '<option value="false"' + (!e.left?' selected':'') + '>잔류</option>' +
+      '</select></td>' +
+      '<td><button class="del-btn" onclick="delRow(' + i + ')" title="삭제">×</button></td>' +
+    '</tr>';
+  });
+  document.getElementById('empBody').innerHTML = html;
+}
+
+function emp(i, k, v) { employees[i][k] = v; }
+function addRow() {
+  employees.push({name:'', sal:5000, tenure:2, perf:'mid', left:false});
+  renderRows();
+}
+function delRow(i) {
+  if (employees.length > 1) { employees.splice(i, 1); renderRows(); }
+}
+
+function fmtWon(n) {
+  if (n >= 100000000) return (n/100000000).toFixed(1) + '억원';
+  if (n >= 10000000) return Math.round(n/10000000) + '천만원';
+  return Math.round(n/10000).toLocaleString() + '만원';
+}
+
+function analyze() {
+  var mkt = +document.getElementById('mktPos').value;
+  var mult = +document.getElementById('turnCostMult').value;
+  var hhRate = +document.getElementById('hhFee').value / 100;
+
+  var left = employees.filter(function(e) { return e.left; });
+  var stay = employees.filter(function(e) { return !e.left; });
+  var n = employees.length;
+
+  var avgSalLeft = left.length ? left.reduce(function(s,e){return s+e.sal;},0)/left.length : 0;
+  var avgSalStay = stay.length ? stay.reduce(function(s,e){return s+e.sal;},0)/stay.length : 0;
+
+  var totalTurn = left.reduce(function(s,e){return s+e.sal*10000*mult;},0);
+  var totalHH = left.reduce(function(s,e){return s+e.sal*10000*hhRate;},0);
+  var totalCost = totalTurn + totalHH;
+  var retBudget = left.reduce(function(s,e){return s+e.sal*10000*(mkt<1?Math.max(0,1-mkt):0.05);},0);
+  var saving = totalCost - retBudget;
+
+  // KPI
+  document.getElementById('rN').textContent = left.length + '명';
+  document.getElementById('rNSub').textContent = '전체 ' + n + '명 중 ' + Math.round(left.length/n*100) + '%';
+  document.getElementById('rCost').textContent = fmtWon(totalCost);
+  document.getElementById('rSal').textContent = Math.round(avgSalLeft).toLocaleString() + '만';
+  document.getElementById('rSalSub').textContent = '잔류자 ' + Math.round(avgSalStay).toLocaleString() + '만 대비';
+  document.getElementById('rSave').textContent = saving > 0 ? fmtWon(saving) : '추가 분석 필요';
+
+  // Detail table
+  var perfLabel = {high:'우수', mid:'보통', low:'미흡'};
+  var tbody = '';
+  var highRisk = [];
+  employees.forEach(function(e) {
+    var cost = e.left ? (e.sal*10000*mult + e.sal*10000*hhRate) : 0;
+    var risk = !e.left ? (e.perf==='high'&&e.tenure<3?'danger':e.perf==='high'?'warning':'success') : 'left';
+    var badgeMap = {danger:'이탈위험', warning:'관심필요', success:'안정', left:'이직완료'};
+    var badgeCls = {danger:'badge-danger', warning:'badge-warning', success:'badge-success', left:'badge-left'};
+    if (risk==='danger') highRisk.push(e.name);
+    tbody += '<tr>' +
+      '<td>' + e.name + '</td>' +
+      '<td>' + e.sal.toLocaleString() + '만</td>' +
+      '<td>' + e.tenure + '년</td>' +
+      '<td>' + (perfLabel[e.perf]||'—') + '</td>' +
+      '<td>' + (e.left?'이직':'잔류') + '</td>' +
+      '<td>' + (e.left?fmtWon(cost):'-') + '</td>' +
+      '<td><span class="badge ' + (badgeCls[risk]||'badge-left') + '">' + (badgeMap[risk]||'—') + '</span></td>' +
+    '</tr>';
+  });
+  document.getElementById('detailBody').innerHTML = tbody;
+
+  // Insight
+  var parts = [];
+  parts.push('이직자 <strong>' + left.length + '명</strong>으로 인한 총 추정 비용: <strong>' + fmtWon(totalCost) + '</strong>');
+  if (avgSalLeft > avgSalStay) parts.push('이직자 평균 연봉이 잔류자보다 <strong>높음</strong> — 고성과·고보상 직원 이탈 패턴');
+  if (mkt < 1) parts.push('현재 시장 포지셔닝 <strong>' + (mkt*100).toFixed(0) + '%</strong> — 보상 수준이 이직률과 직접 연관될 가능성');
+  document.getElementById('insightBox').innerHTML = parts.join('<br>');
+
+  if (highRisk.length > 0) {
+    document.getElementById('warnBox').innerHTML = '<strong>⚠ 즉시 주의:</strong> 우수 성과자 중 재직 3년 미만 이탈 위험군 — ' + highRisk.join(', ') + '<br>즉각 Retention 면담 및 보상 검토 권고';
+    document.getElementById('warnBox').classList.remove('hidden');
+  } else {
+    document.getElementById('warnBox').classList.add('hidden');
+  }
+
+  // Compare
+  document.getElementById('cHire').textContent = fmtWon(totalCost);
+  document.getElementById('cRet').textContent = fmtWon(retBudget);
+  document.getElementById('retCalcText').innerHTML =
+    '신규 채용 총 비용: <strong>' + fmtWon(totalCost) + '</strong> &nbsp;|&nbsp; ' +
+    'Retention 투자: <strong>' + fmtWon(retBudget) + '</strong><br>' +
+    '→ Retention이 신규 채용보다 <strong>' + fmtWon(saving) + ' 절감</strong> 효과 (보상 격차 해소 기준)';
+
+  // Recommendations
+  document.getElementById('rec1').innerHTML =
+    (highRisk.length > 0 ? '우수 성과자 이탈 위험군(' + highRisk.join(', ') + ') 대상 즉각 1:1 Retention 면담 시행. 이탈 1명 추가 발생 시 약 ' + fmtWon(avgSalLeft*10000*mult) + ' 추가 비용 발생 예상.' : '현 데이터 기준 즉각 조치 대상 없음. 잔류 직원 보상 수준 정기 점검 권고.');
+  document.getElementById('rec2').innerHTML =
+    '현재 시장 포지셔닝(' + (mkt*100).toFixed(0) + '%) 대비 이직자 평균 연봉 분석 — 직무별 Pay Range 및 성과 차등 지급 구조 재검토 권고.';
+  document.getElementById('rec3').innerHTML =
+    '채용 채널별 비용·재직기간·성과 데이터 수집 체계 구축 → 분기별 이직 비용 모니터링 리포트 경영진 정기 보고 체계화.';
+
+  // Charts
+  renderChartSal(avgSalLeft, avgSalStay);
+  renderChartRet(totalCost, totalHH, retBudget);
+
+  document.getElementById('results').classList.remove('hidden');
+  document.getElementById('results').scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+function renderChartSal(left, stay) {
+  if (charts.sal) charts.sal.destroy();
+  var ctx = document.getElementById('chartSal').getContext('2d');
+  charts.sal = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: ['이직자 평균 연봉', '잔류자 평균 연봉'],
+      datasets: [{
+        data: [Math.round(left), Math.round(stay)],
+        backgroundColor: ['#dc2626', '#1d4ed8'],
+        borderRadius: 6,
+        barThickness: 56
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: function(ctx) { return ctx.raw.toLocaleString() + '만원'; }}}},
+      scales: {
+        y: { ticks: { callback: function(v) { return v.toLocaleString() + '만'; }}, grid: { color: '#f3f4f6' }},
+        x: { grid: { display: false }}
+      }
+    }
+  });
+}
+
+function renderChartRet(hire, hh, ret) {
+  if (charts.ret) charts.ret.destroy();
+  var ctx = document.getElementById('chartRet').getContext('2d');
+  charts.ret = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: ['신규 채용 총 비용', '헤드헌터 수수료만', 'Retention 투자'],
+      datasets: [{
+        data: [Math.round(hire/10000), Math.round(hh/10000), Math.round(ret/10000)],
+        backgroundColor: ['#dc2626', '#d97706', '#1d4ed8'],
+        borderRadius: 6,
+        barThickness: 48
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: function(ctx) { return ctx.raw.toLocaleString() + '만원'; }}}},
+      scales: {
+        y: { ticks: { callback: function(v) { return v.toLocaleString() + '만'; }}, grid: { color: '#f3f4f6' }},
+        x: { grid: { display: false }, ticks: { font: { size: 11 }}}
+      }
+    }
+  });
+}
+
+renderRows();
+</script>
+</body>
+</html>

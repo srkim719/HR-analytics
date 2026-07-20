@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>채용 채널별 ROI 분석기 — People Intelligence by Sung Rok Kim</title>
+<style>
+  :root{
+    --bg:#fff; --text:#1a1a1a; --muted:#6b6b6b; --border:#e3e1da;
+    --accent:#199e70; --accent-bg:#e1f5ee;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; padding:0; background:var(--bg); color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Pretendard,sans-serif;
+    line-height:1.6;
+  }
+  .wrap{max-width:860px; margin:0 auto; padding:48px 24px 96px;}
+  .eyebrow{font-size:13px; color:var(--muted); letter-spacing:.02em; margin-bottom:8px;}
+  h1{font-size:28px; font-weight:600; margin:0 0 12px; line-height:1.35;}
+  .lede{font-size:16px; color:var(--muted); margin:0 0 40px; max-width:640px;}
+  table{width:100%; border-collapse:collapse; table-layout:fixed; font-size:13px; margin-bottom:12px;}
+  th{text-align:left; padding:8px 6px; font-weight:500; color:var(--muted); border-bottom:1px solid var(--border); font-size:12px;}
+  td{padding:6px; border-bottom:1px solid var(--border);}
+  input{width:100%; height:34px; font-size:13px; padding:4px 8px; border:1px solid var(--border); border-radius:6px; background:#fff; color:var(--text);}
+  input:focus{outline:none; border-color:#999;}
+  .readonly{font-weight:600;}
+  button{
+    font-size:13px; padding:8px 14px; border-radius:6px; border:1px solid var(--border);
+    background:#fff; color:var(--text); cursor:pointer;
+  }
+  button:hover{background:#f7f7f5;}
+  .del-btn{border:none; background:transparent; color:var(--muted); padding:4px;}
+  .note{font-size:12px; color:var(--muted); margin:0 0 32px;}
+  .chart-box{position:relative; width:100%; height:200px; margin-bottom:16px;}
+  .footer-note{font-size:12px; color:var(--muted); margin-top:48px; border-top:1px solid var(--border); padding-top:16px;}
+  a{color:var(--text);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="eyebrow">HR Analytics Lab — Tool 02</div>
+  <h1>채용 채널마다 다 똑같이 잘한다고 말하지만,<br>실제로 오래 남는 사람은 어디서 왔을까</h1>
+  <p class="lede">채용 채널을 합격률로만 평가하지 않습니다. 채널별 비용, 합격률, 평균 재직기간, 성과를 함께 입력하면 채널별 ROI지수를 즉시 계산합니다.</p>
+
+  <table id="roiTable">
+    <colgroup>
+      <col style="width:18%"><col style="width:12%"><col style="width:9%"><col style="width:10%"><col style="width:9%"><col style="width:10%"><col style="width:11%"><col style="width:12%"><col style="width:9%">
+    </colgroup>
+    <thead>
+      <tr>
+        <th>채널</th><th>비용(만원)</th><th>지원자</th><th>최종합격</th><th>합격률</th><th>재직(월)</th><th>성과(1-5)</th><th>ROI지수</th><th></th>
+      </tr>
+    </thead>
+    <tbody id="roiBody"></tbody>
+  </table>
+
+  <button id="addRowBtn">+ 채널 추가</button>
+
+  <p class="note">ROI지수 = (재직기간 × 성과점수) ÷ 비용(만원) × 100. 숫자가 높을수록 비용 대비 효율이 높으며, 가장 높은 채널이 초록색으로 표시됩니다.</p>
+
+  <div class="chart-box">
+    <canvas id="roiChart" role="img" aria-label="채널별 ROI 지수 비교 막대 그래프">채널별 ROI 지수를 비교하는 막대 그래프.</canvas>
+  </div>
+
+  <div class="footer-note">
+    이 도구는 Sung Rok Kim이 HR 실무 경험을 바탕으로 직접 설계했습니다.<br>
+    입력된 데이터는 외부로 전송되지 않으며 브라우저 내에서만 처리됩니다.
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+(function(){
+  var seed = [
+    {name:'헤드헌터', cost:1200, applicants:20, hires:3, tenure:18, perf:4},
+    {name:'채용사이트', cost:150, applicants:200, hires:5, tenure:11, perf:3},
+    {name:'내부추천', cost:300, applicants:15, hires:4, tenure:26, perf:5}
+  ];
+  var tbody = document.getElementById('roiBody');
+  var chart = null;
+
+  function fieldCell(row, key, type){
+    var td = document.createElement('td');
+    var input = document.createElement('input');
+    input.type = type;
+    input.value = row[key];
+    input.dataset.key = key;
+    if(type === 'number'){ input.min = '0'; input.step = key === 'perf' ? '0.1' : '1'; }
+    input.addEventListener('input', recalc);
+    td.appendChild(input);
+    return td;
+  }
+
+  function readOnlyCell(){
+    var td = document.createElement('td');
+    var span = document.createElement('span');
+    span.className = 'readonly';
+    td.appendChild(span);
+    return {td: td, span: span};
+  }
+
+  function buildRow(row){
+    var tr = document.createElement('tr');
+    tr.appendChild(fieldCell(row, 'name', 'text'));
+    tr.appendChild(fieldCell(row, 'cost', 'number'));
+    tr.appendChild(fieldCell(row, 'applicants', 'number'));
+    tr.appendChild(fieldCell(row, 'hires', 'number'));
+
+    var rate = readOnlyCell();
+    tr.appendChild(rate.td);
+    tr._rateSpan = rate.span;
+
+    tr.appendChild(fieldCell(row, 'tenure', 'number'));
+
+    var perfCell = fieldCell(row, 'perf', 'number');
+    perfCell.querySelector('input').max = '5';
+    tr.appendChild(perfCell);
+
+    var roi = readOnlyCell();
+    tr.appendChild(roi.td);
+    tr._roiSpan = roi.span;
+    tr._roiTd = roi.td;
+
+    var delTd = document.createElement('td');
+    delTd.style.textAlign = 'center';
+    var delBtn = document.createElement('button');
+    delBtn.className = 'del-btn';
+    delBtn.setAttribute('aria-label', '채널 삭제');
+    delBtn.textContent = '삭제';
+    delBtn.addEventListener('click', function(){
+      if(tbody.children.length > 1){ tr.remove(); recalc(); }
+    });
+    delTd.appendChild(delBtn);
+    tr.appendChild(delTd);
+
+    tbody.appendChild(tr);
+  }
+
+  function num(v){ var n = parseFloat(v); return isNaN(n) ? 0 : n; }
+
+  function recalc(){
+    var rows = Array.from(tbody.children);
+    var data = [];
+    rows.forEach(function(tr){
+      var inputs = tr.querySelectorAll('input');
+      var vals = {};
+      inputs.forEach(function(inp){ vals[inp.dataset.key] = inp.dataset.key === 'name' ? inp.value : num(inp.value); });
+      var rate = vals.applicants > 0 ? (vals.hires / vals.applicants * 100) : 0;
+      var numer = vals.tenure * vals.perf;
+      var roi = vals.cost > 0 ? (numer / vals.cost * 100) : null;
+      tr._rateSpan.textContent = rate.toFixed(1) + '%';
+      tr._roiSpan.textContent = roi === null ? '-' : roi.toFixed(1);
+      data.push({name: vals.name || '채널', roi: roi, tr: tr});
+    });
+
+    var valid = data.filter(function(d){ return d.roi !== null; });
+    var maxRoi = valid.length ? Math.max.apply(null, valid.map(function(d){ return d.roi; })) : null;
+
+    data.forEach(function(d){
+      d.tr._roiTd.style.background = 'transparent';
+      d.tr._roiSpan.style.color = 'inherit';
+      if(d.roi !== null && d.roi === maxRoi){
+        d.tr._roiTd.style.background = '#e1f5ee';
+        d.tr._roiSpan.style.color = '#0f6e56';
+      }
+    });
+
+    var labels = data.map(function(d){ return d.name; });
+    var values = data.map(function(d){ return d.roi === null ? 0 : Math.round(d.roi * 10) / 10; });
+    var colors = data.map(function(d){ return (d.roi !== null && d.roi === maxRoi) ? '#199e70' : '#898781'; });
+
+    if(chart){
+      chart.data.labels = labels;
+      chart.data.datasets[0].data = values;
+      chart.data.datasets[0].backgroundColor = colors;
+      chart.update();
+    } else {
+      var ctx = document.getElementById('roiChart');
+      chart = new Chart(ctx, {
+        type: 'bar',
+        data: { labels: labels, datasets: [{ label: 'ROI지수', data: values, backgroundColor: colors, borderRadius: 4, maxBarThickness: 28 }] },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { grid: { color: '#e1e0d9' }, ticks: { color: '#898781', font: { size: 11 } } },
+            y: { grid: { display: false }, ticks: { color: '#52514e', font: { size: 12 } } }
+          }
+        }
+      });
+    }
+  }
+
+  seed.forEach(buildRow);
+  recalc();
+
+  document.getElementById('addRowBtn').addEventListener('click', function(){
+    buildRow({name:'새 채널', cost:0, applicants:0, hires:0, tenure:0, perf:0});
+    recalc();
+  });
+})();
+</script>
+</body>
+</html>

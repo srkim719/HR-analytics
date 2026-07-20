@@ -587,6 +587,46 @@
 
   </div><!-- /results -->
 
+  <div class="section-divider"></div>
+
+  <!-- HERO 2 -->
+  <div class="hero">
+    <div class="hero-eyebrow">HR Analytics Lab — Tool 02</div>
+    <h1 class="hero-title" style="font-size:22px;">채용 채널마다 다 똑같이 잘한다고 말하지만,<br><em>실제로 오래 남는 사람은 어디서 왔을까</em></h1>
+    <p class="hero-desc">채용 채널을 합격률로만 평가하지 않습니다. 채널별 비용, 합격률, 평균 재직기간, 성과를 함께 입력하면 채널별 ROI지수를 즉시 계산합니다.</p>
+  </div>
+
+  <!-- CARD: CHANNEL DATA -->
+  <div class="card">
+    <div class="card-title">
+      <div class="card-title-num">1</div>
+      채용 채널 데이터 입력
+    </div>
+    <div class="emp-table-wrap">
+      <table class="emp-table">
+        <thead>
+          <tr>
+            <th>채널</th>
+            <th>비용 (만원)</th>
+            <th>지원자</th>
+            <th>최종합격</th>
+            <th>합격률</th>
+            <th>재직기간 (월)</th>
+            <th>성과 (1-5)</th>
+            <th>ROI지수</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="roiBody"></tbody>
+      </table>
+    </div>
+    <button class="add-row-btn" onclick="addChannelRow()">+ 채널 추가</button>
+    <div class="insight-box" style="margin-top:14px">ROI지수 = (재직기간 × 성과점수) ÷ 비용(만원) × 100. 숫자가 높을수록 비용 대비 효율이 높으며, 가장 높은 채널이 초록색으로 강조됩니다.</div>
+    <div class="chart-wrap">
+      <canvas id="chartRoi"></canvas>
+    </div>
+  </div>
+
   <!-- FOOTER -->
   <div class="tool-footer">
     <div class="tool-footer-note">
@@ -785,6 +825,76 @@ function renderChartRet(hire, hh, ret) {
 }
 
 renderRows();
+</script>
+
+<script>
+var channels = [
+  {name:'헤드헌터', cost:1200, applicants:20, hires:3, tenure:18, perf:4},
+  {name:'채용사이트', cost:150, applicants:200, hires:5, tenure:11, perf:3},
+  {name:'내부추천', cost:300, applicants:15, hires:4, tenure:26, perf:5}
+];
+var roiChartInstance;
+
+function chField(i, k, v) { channels[i][k] = v; renderChannelRows(); }
+function addChannelRow() {
+  channels.push({name:'새 채널', cost:0, applicants:0, hires:0, tenure:0, perf:0});
+  renderChannelRows();
+}
+function delChannelRow(i) {
+  if (channels.length > 1) { channels.splice(i, 1); renderChannelRows(); }
+}
+
+function renderChannelRows() {
+  var computed = channels.map(function(c) {
+    var rate = c.applicants > 0 ? (c.hires / c.applicants * 100) : 0;
+    var roi = c.cost > 0 ? ((c.tenure * c.perf) / c.cost * 100) : null;
+    return { rate: rate, roi: roi };
+  });
+  var validRoi = computed.filter(function(c){ return c.roi !== null; }).map(function(c){ return c.roi; });
+  var maxRoi = validRoi.length ? Math.max.apply(null, validRoi) : null;
+
+  var html = '';
+  channels.forEach(function(c, i) {
+    var comp = computed[i];
+    var isBest = comp.roi !== null && comp.roi === maxRoi;
+    html += '<tr>' +
+      '<td><input type="text" value="' + c.name + '" onchange="chField(' + i + ',\'name\',this.value)"></td>' +
+      '<td><input type="number" value="' + c.cost + '" onchange="chField(' + i + ',\'cost\',+this.value)" min="0" style="width:80px"></td>' +
+      '<td><input type="number" value="' + c.applicants + '" onchange="chField(' + i + ',\'applicants\',+this.value)" min="0" style="width:70px"></td>' +
+      '<td><input type="number" value="' + c.hires + '" onchange="chField(' + i + ',\'hires\',+this.value)" min="0" style="width:70px"></td>' +
+      '<td>' + comp.rate.toFixed(1) + '%</td>' +
+      '<td><input type="number" value="' + c.tenure + '" onchange="chField(' + i + ',\'tenure\',+this.value)" min="0" style="width:70px"></td>' +
+      '<td><input type="number" value="' + c.perf + '" step="0.1" max="5" min="0" onchange="chField(' + i + ',\'perf\',+this.value)" style="width:60px"></td>' +
+      '<td style="font-weight:600;' + (isBest ? 'color:#16a34a' : '') + '">' + (comp.roi === null ? '-' : comp.roi.toFixed(1)) + '</td>' +
+      '<td><button class="del-btn" onclick="delChannelRow(' + i + ')" title="삭제">×</button></td>' +
+    '</tr>';
+  });
+  document.getElementById('roiBody').innerHTML = html;
+  renderChartRoi(computed, maxRoi);
+}
+
+function renderChartRoi(computed, maxRoi) {
+  if (roiChartInstance) roiChartInstance.destroy();
+  var ctx = document.getElementById('chartRoi').getContext('2d');
+  var labels = channels.map(function(c) { return c.name; });
+  var values = computed.map(function(c) { return c.roi === null ? 0 : Math.round(c.roi * 10) / 10; });
+  var colors = computed.map(function(c) { return (c.roi !== null && c.roi === maxRoi) ? '#16a34a' : '#9ca3af'; });
+  roiChartInstance = new Chart(ctx, {
+    type: 'bar',
+    data: { labels: labels, datasets: [{ data: values, backgroundColor: colors, borderRadius: 6, barThickness: 32 }] },
+    options: {
+      indexAxis: 'y',
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: function(ctx) { return 'ROI지수 ' + ctx.raw; } } } },
+      scales: {
+        x: { grid: { color: '#f3f4f6' } },
+        y: { grid: { display: false } }
+      }
+    }
+  });
+}
+
+renderChannelRows();
 </script>
 </body>
 </html>

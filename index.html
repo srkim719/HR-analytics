@@ -627,6 +627,111 @@
     </div>
   </div>
 
+  <div class="section-divider"></div>
+
+  <!-- HERO 3 -->
+  <div class="hero">
+    <div class="hero-eyebrow">HR Analytics Lab — Tool 03</div>
+    <h1 class="hero-title" style="font-size:22px;">교육비로 얼마를 썼는데,<br><em>그게 실제로 효과가 있었는가</em></h1>
+    <p class="hero-desc">교육 예산은 재정 문제가 생기면 가장 먼저 삭감되지만, 하지 않았을 때의 손실을 증명하는 교육팀은 드뭅니다. 표준 Jack Phillips ROI 모델과, 실제 측정 방식(사전·사후 설문, 기회비용 산정)에 맞춘 커스텀 모델 두 가지로 교육 투자의 실질 효과를 계산합니다.</p>
+  </div>
+
+  <div style="display:flex; gap:8px; margin-bottom:16px;">
+    <button id="tabPhillipsBtn" class="add-row-btn" style="border-style:solid; background:var(--accent); color:white;" onclick="switchTrainTab('phillips')">Phillips ROI 모델</button>
+    <button id="tabCustomBtn" class="add-row-btn" onclick="switchTrainTab('custom')">우리가 함께 고민한 모델</button>
+  </div>
+
+  <!-- ================= MODEL A: PHILLIPS ================= -->
+  <div id="modelPhillips">
+    <div class="card">
+      <div class="card-title">
+        <div class="card-title-num">1</div>
+        교육 프로그램 데이터 입력 (Phillips 표준 방식)
+      </div>
+      <details class="insight-box" style="margin-bottom:16px;">
+        <summary style="cursor:pointer; font-weight:600; color:var(--ink);">이 개념이 헷갈리신가요? — 4개 항목 쉽게 이해하기</summary>
+        <div style="margin-top:10px;">
+          <strong>성과향상(점)</strong> — 교육 전후 성과평가 점수 차이입니다. 가능하면 같은 직무의 미수강자와 비교해서 순수 교육 효과만 반영하세요.<br><br>
+          <strong>점당가치(만원)</strong> — 성과 1점이 오를 때 회사가 얻는 연간 금전 가치입니다. 정확히 모르겠다면 "연봉의 5~10%"를 근사치로 써도 됩니다.<br><br>
+          <strong>이직률감소(%p)</strong> — 수강자 이직률과 미수강자(또는 교육 전) 이직률의 차이입니다. 예: 수강자 5%, 미수강자 13% → 8%p 입력.<br><br>
+          <strong>이직비용/인(만원)</strong> — 직원 1명이 이직할 때 드는 총비용(채용비 + 공백기간 손실 + 신규자 적응기간 손실)입니다. 위 Tool01(이직 비용 분석기)에서 나온 값을 그대로 가져다 쓰면 됩니다.
+        </div>
+      </details>
+      <div class="emp-table-wrap">
+        <table class="emp-table">
+          <thead>
+            <tr>
+              <th>교육명</th>
+              <th>인원</th>
+              <th>1인당비용(만원)</th>
+              <th>성과향상(점)</th>
+              <th>점당가치(만원)</th>
+              <th>이직률감소(%p)</th>
+              <th>이직비용/인(만원)</th>
+              <th>ROI%</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="phillipsBody"></tbody>
+        </table>
+      </div>
+      <button class="add-row-btn" onclick="addPhillipsRow()">+ 교육 프로그램 추가</button>
+      <div class="insight-box" style="margin-top:14px">
+        Jack Phillips ROI 방법론 기준 (Level 5: ROI). 총교육비 = 인원 × 1인당비용. 총효과 = 성과향상 효과금액 + 이직률감소 효과금액.<br>
+        ROI% = (총효과 − 총교육비) ÷ 총교육비 × 100. BCR(효과/비용 배수) = ROI÷100 + 1.
+      </div>
+      <div id="phillipsBestSummary" style="font-size:13px; font-weight:600; color:var(--ink); margin-top:10px;"></div>
+      <div class="chart-wrap">
+        <canvas id="chartPhillips"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODEL B: CUSTOM ================= -->
+  <div id="modelCustom" class="hidden">
+    <div class="card">
+      <div class="card-title">
+        <div class="card-title-num">1</div>
+        기본 설정
+      </div>
+      <div class="field-grid-3">
+        <div class="field">
+          <label>월 근무일수 (일급 환산 기준)</label>
+          <input type="number" id="workDays" value="21.5" step="0.5" min="1" onchange="renderTrainCards()">
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">
+        <div class="card-title-num">2</div>
+        교육 프로그램 데이터 입력
+      </div>
+      <details class="insight-box" style="margin-bottom:16px;">
+        <summary style="cursor:pointer; font-weight:600; color:var(--ink);">비용·효과는 이렇게 측정합니다 (펼쳐보기)</summary>
+        <div style="margin-top:10px;">
+          <strong>교육비</strong> = 실제 교육비(수강료 등) + 기회비용. 기회비용 = 참석일수 × 일급, 일급 = 평균월급 ÷ 월 근무일수.<br><br>
+          <strong>성과 효과</strong> = 목표 달성률 변화 × 목표가치. 리더십/소프트스킬 교육은 <strong>교육 직후</strong> 사전·사후 설문으로, 기술 교육은 <strong>3개월 후</strong> 설문으로 달성률 변화를 측정합니다.<br><br>
+          <strong>이직률감소</strong> = 수강자 이직률과 미수강자(또는 교육 전) 이직률의 차이(%p).<br><br>
+          <strong>이직비용/인</strong> = 직원 1명 이직 시 총비용. Tool01(이직 비용 분석기) 결과값을 그대로 가져다 쓰면 됩니다.
+        </div>
+      </details>
+      <div id="trainCardsContainer"></div>
+      <button class="add-row-btn" onclick="addTrainCard()">+ 교육 프로그램 추가</button>
+    </div>
+
+    <div class="card">
+      <div class="card-title">
+        <div class="card-title-num">→</div>
+        프로그램별 ROI 비교
+      </div>
+      <div id="trainBestSummary" style="font-size:13px; font-weight:600; color:var(--ink); margin-bottom:10px;"></div>
+      <div class="chart-wrap">
+        <canvas id="chartTrain"></canvas>
+      </div>
+    </div>
+  </div>
+
   <!-- FOOTER -->
   <div class="tool-footer">
     <div class="tool-footer-note">
@@ -895,6 +1000,227 @@ function renderChartRoi(computed, maxRoi) {
 }
 
 renderChannelRows();
+</script>
+
+<script>
+function switchTrainTab(which) {
+  var phillips = document.getElementById('modelPhillips');
+  var custom = document.getElementById('modelCustom');
+  var btnP = document.getElementById('tabPhillipsBtn');
+  var btnC = document.getElementById('tabCustomBtn');
+  if (which === 'phillips') {
+    phillips.classList.remove('hidden');
+    custom.classList.add('hidden');
+    btnP.style.background = 'var(--accent)'; btnP.style.color = 'white'; btnP.style.borderColor = 'var(--accent)';
+    btnC.style.background = 'none'; btnC.style.color = 'var(--accent)'; btnC.style.borderColor = 'var(--accent-border)';
+  } else {
+    custom.classList.remove('hidden');
+    phillips.classList.add('hidden');
+    btnC.style.background = 'var(--accent)'; btnC.style.color = 'white'; btnC.style.borderColor = 'var(--accent)';
+    btnP.style.background = 'none'; btnP.style.color = 'var(--accent)'; btnP.style.borderColor = 'var(--accent-border)';
+  }
+}
+
+var phillipsTrainings = [
+  {name:'리더십 교육', n:15, cost:120, perfGain:0.5, perfValue:400, turnGap:8, turnCost:6000},
+  {name:'신입 온보딩', n:40, cost:30, perfGain:0.3, perfValue:200, turnGap:5, turnCost:2500},
+  {name:'세일즈 스킬', n:25, cost:60, perfGain:0.2, perfValue:250, turnGap:2, turnCost:4000}
+];
+var phillipsChartInstance;
+
+function phField(i, k, v) { phillipsTrainings[i][k] = v; renderPhillipsRows(); }
+function addPhillipsRow() {
+  phillipsTrainings.push({name:'새 교육', n:0, cost:0, perfGain:0, perfValue:0, turnGap:0, turnCost:0});
+  renderPhillipsRows();
+}
+function delPhillipsRow(i) {
+  if (phillipsTrainings.length > 1) { phillipsTrainings.splice(i, 1); renderPhillipsRows(); }
+}
+
+function renderPhillipsRows() {
+  var computed = phillipsTrainings.map(function(t) {
+    var totalCost = t.n * t.cost;
+    var perfBenefit = t.n * t.perfGain * t.perfValue;
+    var turnBenefit = t.n * (t.turnGap / 100) * t.turnCost;
+    var totalBenefit = perfBenefit + turnBenefit;
+    var roi = totalCost > 0 ? ((totalBenefit - totalCost) / totalCost * 100) : null;
+    return { roi: roi };
+  });
+  var validRoi = computed.filter(function(c){ return c.roi !== null; }).map(function(c){ return c.roi; });
+  var maxRoi = validRoi.length ? Math.max.apply(null, validRoi) : null;
+
+  var html = '';
+  phillipsTrainings.forEach(function(t, i) {
+    var comp = computed[i];
+    var isBest = comp.roi !== null && comp.roi === maxRoi;
+    html += '<tr>' +
+      '<td><input type="text" value="' + t.name + '" onchange="phField(' + i + ',\'name\',this.value)"></td>' +
+      '<td><input type="number" value="' + t.n + '" onchange="phField(' + i + ',\'n\',+this.value)" min="0" style="width:60px"></td>' +
+      '<td><input type="number" value="' + t.cost + '" onchange="phField(' + i + ',\'cost\',+this.value)" min="0" style="width:80px"></td>' +
+      '<td><input type="number" value="' + t.perfGain + '" step="0.1" onchange="phField(' + i + ',\'perfGain\',+this.value)" min="0" style="width:70px"></td>' +
+      '<td><input type="number" value="' + t.perfValue + '" onchange="phField(' + i + ',\'perfValue\',+this.value)" min="0" style="width:80px"></td>' +
+      '<td><input type="number" value="' + t.turnGap + '" onchange="phField(' + i + ',\'turnGap\',+this.value)" min="0" style="width:80px"></td>' +
+      '<td><input type="number" value="' + t.turnCost + '" onchange="phField(' + i + ',\'turnCost\',+this.value)" min="0" style="width:90px"></td>' +
+      '<td style="font-weight:600;' + (isBest ? 'color:#16a34a' : '') + '">' + (comp.roi === null ? '-' : Math.round(comp.roi) + '%') + '</td>' +
+      '<td><button class="del-btn" onclick="delPhillipsRow(' + i + ')" title="삭제">×</button></td>' +
+    '</tr>';
+  });
+  document.getElementById('phillipsBody').innerHTML = html;
+
+  var bestIdx = -1;
+  computed.forEach(function(c, i){ if (c.roi !== null && c.roi === maxRoi) bestIdx = i; });
+  var summaryEl = document.getElementById('phillipsBestSummary');
+  if (bestIdx >= 0) {
+    var bcr = (maxRoi / 100 + 1).toFixed(2);
+    summaryEl.textContent = '최고 효율: ' + phillipsTrainings[bestIdx].name + ' — ROI ' + Math.round(maxRoi) + '%, BCR ' + bcr + '배 (1만원 투자 시 ' + bcr + '만원 효과)';
+  } else {
+    summaryEl.textContent = '';
+  }
+
+  renderChartPhillips(computed, maxRoi);
+}
+
+function renderChartPhillips(computed, maxRoi) {
+  if (phillipsChartInstance) phillipsChartInstance.destroy();
+  var ctx = document.getElementById('chartPhillips').getContext('2d');
+  var labels = phillipsTrainings.map(function(t) { return t.name; });
+  var values = computed.map(function(c) { return c.roi === null ? 0 : Math.round(c.roi); });
+  var colors = computed.map(function(c) { return (c.roi !== null && c.roi === maxRoi) ? '#199e70' : '#9ca3af'; });
+  phillipsChartInstance = new Chart(ctx, {
+    type: 'bar',
+    data: { labels: labels, datasets: [{ data: values, backgroundColor: colors, borderRadius: 6, barThickness: 28 }] },
+    options: {
+      indexAxis: 'y',
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: function(ctx) { return 'ROI ' + ctx.raw + '%'; } } } },
+      scales: {
+        x: { grid: { color: '#f3f4f6' }, ticks: { callback: function(v) { return v + '%'; } } },
+        y: { grid: { display: false } }
+      }
+    }
+  });
+}
+
+renderPhillipsRows();
+</script>
+
+<script>
+var trainings = [
+  {name:'신임팀장 리더십 교육', type:'leadership', n:15, actualCost:80, days:2, avgSalary:500, preScore:55, postScore:82, goalValue:300, turnGap:8, turnCost:6000},
+  {name:'데이터 분석 기술 교육', type:'technical', n:20, actualCost:50, days:3, avgSalary:450, preScore:40, postScore:68, goalValue:250, turnGap:3, turnCost:3500}
+];
+var trainChartInstance;
+
+function trField(i, k, v) { trainings[i][k] = v; renderTrainCards(); }
+function addTrainCard() {
+  trainings.push({name:'새 교육', type:'leadership', n:0, actualCost:0, days:0, avgSalary:0, preScore:0, postScore:0, goalValue:0, turnGap:0, turnCost:0});
+  renderTrainCards();
+}
+function delTrainCard(i) {
+  if (trainings.length > 1) { trainings.splice(i, 1); renderTrainCards(); }
+}
+
+function fmtManwon(n) { return Math.round(n).toLocaleString() + '만원'; }
+
+function computeTrain(t, workDays) {
+  var dailyWage = workDays > 0 ? (t.avgSalary / workDays) : 0;
+  var oppCostPerPerson = t.days * dailyWage;
+  var costPerPerson = t.actualCost + oppCostPerPerson;
+  var totalCost = t.n * costPerPerson;
+  var perfBenefit = t.n * ((t.postScore - t.preScore) / 100) * t.goalValue;
+  var turnBenefit = t.n * (t.turnGap / 100) * t.turnCost;
+  var totalBenefit = perfBenefit + turnBenefit;
+  var roi = totalCost > 0 ? ((totalBenefit - totalCost) / totalCost * 100) : null;
+  return { oppCostPerPerson: oppCostPerPerson, totalCost: totalCost, perfBenefit: perfBenefit, turnBenefit: turnBenefit, totalBenefit: totalBenefit, roi: roi };
+}
+
+function renderTrainCards() {
+  var workDays = +document.getElementById('workDays').value || 21.5;
+  var computed = trainings.map(function(t) { return computeTrain(t, workDays); });
+  var validRoi = computed.filter(function(c){ return c.roi !== null; }).map(function(c){ return c.roi; });
+  var maxRoi = validRoi.length ? Math.max.apply(null, validRoi) : null;
+
+  var html = '';
+  trainings.forEach(function(t, i) {
+    var comp = computed[i];
+    var isBest = comp.roi !== null && comp.roi === maxRoi;
+    var roiColor = comp.roi === null ? 'var(--ink-3)' : (comp.roi >= 0 ? '#16a34a' : '#dc2626');
+    var bcr = comp.roi === null ? '-' : (comp.roi / 100 + 1).toFixed(2) + '배';
+    html +=
+      '<div style="background:var(--page); border:1px solid var(--line); border-radius:10px; padding:16px; margin-bottom:14px;' + (isBest ? 'box-shadow:inset 0 0 0 1.5px #86efac;' : '') + '">' +
+        '<div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:12px;">' +
+          '<input type="text" value="' + t.name + '" onchange="trField(' + i + ',\'name\',this.value)" style="font-size:14px; font-weight:600; border:1px solid var(--line); border-radius:6px; padding:6px 10px; background:var(--white); flex:1;">' +
+          '<select onchange="trField(' + i + ',\'type\',this.value)" style="font-size:12px; border:1px solid var(--line); border-radius:6px; padding:6px 8px; background:var(--white);">' +
+            '<option value="leadership"' + (t.type==='leadership'?' selected':'') + '>리더십/소프트스킬 (직후 측정)</option>' +
+            '<option value="technical"' + (t.type==='technical'?' selected':'') + '>기술 교육 (3개월 후 측정)</option>' +
+          '</select>' +
+          '<button class="del-btn" onclick="delTrainCard(' + i + ')" title="삭제">×</button>' +
+        '</div>' +
+
+        '<div class="field-grid-3" style="margin-bottom:10px;">' +
+          '<div class="field"><label>인원 (명)</label><input type="number" value="' + t.n + '" min="0" onchange="trField(' + i + ',\'n\',+this.value)"></div>' +
+          '<div class="field"><label>실제교육비/인 (만원)</label><input type="number" value="' + t.actualCost + '" min="0" onchange="trField(' + i + ',\'actualCost\',+this.value)"></div>' +
+          '<div class="field"><label>참석일수 (일)</label><input type="number" value="' + t.days + '" min="0" onchange="trField(' + i + ',\'days\',+this.value)"></div>' +
+        '</div>' +
+
+        '<div class="field-grid-3" style="margin-bottom:10px;">' +
+          '<div class="field"><label>평균월급/인 (만원)</label><input type="number" value="' + t.avgSalary + '" min="0" onchange="trField(' + i + ',\'avgSalary\',+this.value)"></div>' +
+          '<div class="field"><label>사전설문 달성률 (%)</label><input type="number" value="' + t.preScore + '" min="0" max="100" onchange="trField(' + i + ',\'preScore\',+this.value)"></div>' +
+          '<div class="field"><label>사후설문 달성률 (%)</label><input type="number" value="' + t.postScore + '" min="0" max="100" onchange="trField(' + i + ',\'postScore\',+this.value)"></div>' +
+        '</div>' +
+
+        '<div class="field-grid-3" style="margin-bottom:12px;">' +
+          '<div class="field"><label>목표가치/인 (만원)</label><input type="number" value="' + t.goalValue + '" min="0" onchange="trField(' + i + ',\'goalValue\',+this.value)"></div>' +
+          '<div class="field"><label>이직률감소 (%p)</label><input type="number" value="' + t.turnGap + '" min="0" onchange="trField(' + i + ',\'turnGap\',+this.value)"></div>' +
+          '<div class="field"><label>이직비용/인 (만원)</label><input type="number" value="' + t.turnCost + '" min="0" onchange="trField(' + i + ',\'turnCost\',+this.value)"></div>' +
+        '</div>' +
+
+        '<div style="border-top:1px solid var(--line); padding-top:10px; display:flex; flex-wrap:wrap; gap:16px; font-size:12px; color:var(--ink-2);">' +
+          '<span>기회비용/인 <strong>' + fmtManwon(comp.oppCostPerPerson) + '</strong></span>' +
+          '<span>총교육비 <strong>' + fmtManwon(comp.totalCost) + '</strong></span>' +
+          '<span>총효과 <strong>' + fmtManwon(comp.totalBenefit) + '</strong></span>' +
+          '<span>ROI <strong style="color:' + roiColor + '">' + (comp.roi === null ? '-' : Math.round(comp.roi) + '%') + '</strong></span>' +
+          '<span>BCR <strong>' + bcr + '</strong></span>' +
+        '</div>' +
+      '</div>';
+  });
+  document.getElementById('trainCardsContainer').innerHTML = html;
+
+  var bestIdx = -1;
+  computed.forEach(function(c, i){ if (c.roi !== null && c.roi === maxRoi) bestIdx = i; });
+  var summaryEl = document.getElementById('trainBestSummary');
+  if (bestIdx >= 0) {
+    var bcr = (maxRoi / 100 + 1).toFixed(2);
+    summaryEl.textContent = '최고 효율: ' + trainings[bestIdx].name + ' — ROI ' + Math.round(maxRoi) + '%, BCR ' + bcr + '배 (1만원 투자 시 ' + bcr + '만원 효과)';
+  } else {
+    summaryEl.textContent = '';
+  }
+
+  renderChartTrain(computed, maxRoi);
+}
+
+function renderChartTrain(computed, maxRoi) {
+  if (trainChartInstance) trainChartInstance.destroy();
+  var ctx = document.getElementById('chartTrain').getContext('2d');
+  var labels = trainings.map(function(t) { return t.name; });
+  var values = computed.map(function(c) { return c.roi === null ? 0 : Math.round(c.roi); });
+  var colors = computed.map(function(c) { return (c.roi !== null && c.roi === maxRoi) ? '#16a34a' : '#9ca3af'; });
+  trainChartInstance = new Chart(ctx, {
+    type: 'bar',
+    data: { labels: labels, datasets: [{ data: values, backgroundColor: colors, borderRadius: 6, barThickness: 32 }] },
+    options: {
+      indexAxis: 'y',
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: function(ctx) { return 'ROI ' + ctx.raw + '%'; } } } },
+      scales: {
+        x: { grid: { color: '#f3f4f6' }, ticks: { callback: function(v) { return v + '%'; } } },
+        y: { grid: { display: false } }
+      }
+    }
+  });
+}
+
+renderTrainCards();
 </script>
 </body>
 </html>
